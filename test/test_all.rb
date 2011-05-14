@@ -13,42 +13,80 @@ require 'tempfile'
 class TestPngqr < Test::Unit::TestCase
   def test_autosize
     (0..3).each do |n|
-      assert_encoded_equals_decoded('x'*(10**n))
+      with_encoded_png('x'*(10**n)) do |file, encoded|
+        assert_encoded_equals_decoded(file, encoded)
+      end
     end
   end
 
   def test_static_size
-    assert_encoded_equals_decoded('y'*10, :size => 2)
-    assert_encoded_equals_decoded('y'*100, :size => 20)
-    assert_encoded_equals_decoded('y'*1000, :size => 40)
+    with_encoded_png('y'*10, :size => 2) do |file, encoded|
+      assert_encoded_equals_decoded(file, encoded)
+    end
+    with_encoded_png('y'*100, :size => 20) do |file, encoded|
+      assert_encoded_equals_decoded(file, encoded)
+    end
+    with_encoded_png('y'*1000, :size => 40) do |file, encoded|
+      assert_encoded_equals_decoded(file, encoded)
+    end
   end
 
   def test_scale
-    assert_encoded_equals_decoded('hello, world', :scale => 5)
+    with_encoded_png('hello, world', :scale => 5) do |file, encoded|
+      assert_encoded_equals_decoded(file, encoded)
+    end
   end
 
   def test_border
-    assert_encoded_equals_decoded('hello, world', :border => 5)
+    with_encoded_png('hello, world', :border => 5) do |file, encoded|
+      assert_encoded_equals_decoded(file, encoded)
+    end
+  end
+
+  def test_bgcolor
+    with_encoded_png('hello, world', :bgcolor => ChunkyPNG.Color(:hotpink)) do |file, encoded|
+      assert_bgcolor(file, ChunkyPNG.Color(:hotpink))
+      assert_encoded_equals_decoded(file, encoded)
+    end
+  end
+
+  def test_color
+    with_encoded_png('hello, world', :color => ChunkyPNG.Color(:lightskyblue)) do |file, encoded|
+      assert_color(file, ChunkyPNG.Color(:lightskyblue))
+      assert_encoded_equals_decoded(file, encoded)
+    end
   end
 
 
   protected
-  def assert_encoded_equals_decoded(*opts)
+  def with_encoded_png(*opts)
+    tempfile = Tempfile.new(self.class.to_s)
+    tempfile.write(Pngqr.encode(*opts))
+    tempfile.close
+
     begin
-      str = opts.first
-      @tempfile = Tempfile.new(self.class.to_s)
-      @tempfile.write(Pngqr.encode(*opts))
-      @tempfile.close
-      if Object.const_defined? :QrScanner
-        assert_equal str, QrScanner.decode(@tempfile.path)
-      elsif Object.const_defined? :ZXing
-        assert_equal str, ZXing.decode(@tempfile)
-      else
-        raise Exception, "QR Decoder required. Please gem install qrscanner or zxing."
-      end
+      yield tempfile, opts.first
     ensure
-      @tempfile.unlink if @tempfile
+      tempfile.unlink if tempfile
     end
+  end
+
+  def assert_encoded_equals_decoded(file, expected)
+    if Object.const_defined? :QrScanner
+      assert_equal expected, QrScanner.decode(file.path)
+    elsif Object.const_defined? :ZXing
+      assert_equal expected, ZXing.decode(file)
+    else
+      raise Exception, "QR Decoder required. Please gem install qrscanner or zxing."
+    end
+  end
+
+  def assert_bgcolor(file, color)
+      assert_equal color, ChunkyPNG::Image.from_file(file)[1,1]
+  end
+
+  def assert_color(file, color)
+      assert_equal color, ChunkyPNG::Image.from_file(file)[0,0]
   end
 
 end
