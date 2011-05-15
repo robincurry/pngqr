@@ -57,6 +57,13 @@ class TestPngqr < Test::Unit::TestCase
     end
   end
 
+  def test_transparency
+    with_encoded_png('hello, world', :color => ChunkyPNG::Color::TRANSPARENT) do |file, encoded|
+      assert_color(file, ChunkyPNG::Color::TRANSPARENT)
+      assert_encoded_equals_decoded(file, encoded)
+    end
+  end
+
 
   protected
   def with_encoded_png(*opts)

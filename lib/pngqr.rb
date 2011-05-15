@@ -47,9 +47,9 @@ class Pngqr
       end
 
       if @filename
-        File.open(@filename, 'wb') {|io| io << png.to_blob(:fast_rgb) }
+        File.open(@filename, 'wb') {|io| io << png.to_blob(:fast_rgba) }
       else
-        png.to_blob(:fast_rgb)
+        png.to_blob(:fast_rgba)
       end
     end
 
